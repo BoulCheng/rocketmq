@@ -76,6 +76,10 @@ public abstract class NettyRemotingAbstract {
         new ConcurrentHashMap<Integer, ResponseFuture>(256);
 
     /**
+     * 不同业务对应的不同处理器processor及其处理线程池
+     * processorTable
+     */
+    /**
      * This container holds all processors per request code, aka, for each incoming request, we may look up the
      * responding processor in this map to handle the request.
      */
@@ -224,6 +228,14 @@ public abstract class NettyRemotingAbstract {
                             AsyncNettyRequestProcessor processor = (AsyncNettyRequestProcessor)pair.getObject1();
                             processor.asyncProcessRequest(ctx, cmd, callback);
                         } else {
+
+                            /**
+                             *
+                             * 在线程中处理收到的消息
+                             * 不同业务有不同的业务处理器
+                             * {@link SendMessageProcessor#processRequest} broker处理收到的producer发送的消息、存储消息
+                             * {@link PullMessageProcessor} broker处理consumer消费消息
+                             */
                             NettyRequestProcessor processor = pair.getObject1();
                             RemotingCommand response = processor.processRequest(ctx, cmd);
                             callback.callback(response);
@@ -252,6 +264,10 @@ public abstract class NettyRemotingAbstract {
 
             try {
                 final RequestTask requestTask = new RequestTask(run, ctx.channel(), cmd);
+                /**
+                 * 放入对应的业务线程池处理 M2
+                 * 不同业务有不同的业务线程池
+                 */
                 pair.getObject2().submit(requestTask);
             } catch (RejectedExecutionException e) {
                 if ((System.currentTimeMillis() % 10000) == 0) {
