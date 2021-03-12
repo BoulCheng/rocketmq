@@ -198,6 +198,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
 
+                /**
+                 *
+                 */
                 if (startFactory) {
                     mQClientFactory.start();
                 }
@@ -554,6 +557,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         long beginTimestampFirst = System.currentTimeMillis();
         long beginTimestampPrev = beginTimestampFirst;
         long endTimestamp = beginTimestampFirst;
+        //获取topic路由信息
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
             boolean callTimeout = false;
@@ -563,8 +567,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             int timesTotal = communicationMode == CommunicationMode.SYNC ? 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed() : 1;
             int times = 0;
             String[] brokersSent = new String[timesTotal];
-            for (; times < timesTotal; times++) {
+            for (; times < timesTotal; times++) { //CommunicationMode.SYNC同步发送消息  消息重试次数+1 // 非同步发送就是发送一次
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
+                // 负载均衡 发送消息时根据topic选择一个消息队列 MessageQueue
                 MessageQueue mqSelected = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);
                 if (mqSelected != null) {
                     mq = mqSelected;
@@ -577,12 +582,21 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         }
                         long costTime = beginTimestampPrev - beginTimestampFirst;
                         if (timeout < costTime) {
+                            // 发送消息超时
                             callTimeout = true;
                             break;
                         }
 
+                        /**
+                         * 发送消息 往同broker集群的 Broker Master 发送消息
+                         * 同步
+                         * 异步
+                         * 单边
+                         */
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout - costTime);
                         endTimestamp = System.currentTimeMillis();
+                        // 更新mqFaultStrategy
+                        // 通过延时时间更新对应brokerName不可用的时间
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
                         switch (communicationMode) {
                             case ASYNC:
@@ -592,6 +606,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             case SYNC:
                                 if (sendResult.getSendStatus() != SendStatus.SEND_OK) {
                                     if (this.defaultMQProducer.isRetryAnotherBrokerWhenNotStoreOK()) {
+                                        // TODO: 2021/3/12  
                                         continue;
                                     }
                                 }
@@ -686,6 +701,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             null).setResponseCode(ClientErrorCode.NOT_FOUND_TOPIC_EXCEPTION);
     }
 
+    /**
+     * 获取topic的路由信息 TBW102 -> {TopicPublishInfo@1542} "TopicPublishInfo [orderTopic=false, messageQueueList=[], sendWhichQueue=ThreadLocalIndex{threadLocalIndex=null}, haveTopicRouterInfo=false]"
+     * @param topic
+     * @return
+     */
     private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
@@ -697,6 +717,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (topicPublishInfo.isHaveTopicRouterInfo() || topicPublishInfo.ok()) {
             return topicPublishInfo;
         } else {
+            // 第二次请求会将isDefault=true，开启默认“TBW102”从namerserver获取路由信息
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true, this.defaultMQProducer);
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
             return topicPublishInfo;
@@ -783,6 +804,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 requestHeader.setTopic(msg.getTopic());
                 requestHeader.setDefaultTopic(this.defaultMQProducer.getCreateTopicKey());
                 requestHeader.setDefaultTopicQueueNums(this.defaultMQProducer.getDefaultTopicQueueNums());
+                // 队列id
                 requestHeader.setQueueId(mq.getQueueId());
                 requestHeader.setSysFlag(sysFlag);
                 requestHeader.setBornTimestamp(System.currentTimeMillis());
@@ -851,6 +873,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         if (timeout < costTimeSync) {
                             throw new RemotingTooMuchRequestException("sendKernelImpl call timeout");
                         }
+                        //
                         sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
                             brokerAddr,
                             mq.getBrokerName(),

@@ -77,7 +77,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final Bootstrap bootstrap = new Bootstrap();
     private final EventLoopGroup eventLoopGroupWorker;
     private final Lock lockChannelTables = new ReentrantLock();
-    private final ConcurrentMap<String /* addr */, ChannelWrapper> channelTables = new ConcurrentHashMap<String, ChannelWrapper>();
+    private final ConcurrentMap<String /* addr */, ChannelWrapper> channelTables = new ConcurrentHashMap<String, ChannelWrapper>(); // TODO: 2021/3/12  
 
     private final Timer timer = new Timer("ClientHouseKeepingService", true);
 
@@ -161,6 +161,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             });
 
+
+        //这里并没有调用 bootstrap#connect  延迟到具体建立连接的时候调用
         Bootstrap handler = this.bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
             .option(ChannelOption.TCP_NODELAY, true)
             .option(ChannelOption.SO_KEEPALIVE, false)
@@ -179,6 +181,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                             log.warn("Connections are insecure as SSLContext is null!");
                         }
                     }
+                    // TODO: 2021/3/12  用到了netty各种内建的 ChannelHandler
                     pipeline.addLast(
                         defaultEventExecutorGroup,
                         new NettyEncoder(),
@@ -366,6 +369,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
         long beginStartTime = System.currentTimeMillis();
+        //netty
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
             try {
@@ -395,6 +399,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
+    /**
+     * 往该netty server发送消息时 再与该其建立连接
+     * @param addr
+     * @return
+     * @throws RemotingConnectException
+     * @throws InterruptedException
+     */
     private Channel getAndCreateChannel(final String addr) throws RemotingConnectException, InterruptedException {
         if (null == addr) {
             return getAndCreateNameserverChannel();
@@ -479,6 +490,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
 
                 if (createNewConnection) {
+                    //
                     ChannelFuture channelFuture = this.bootstrap.connect(RemotingHelper.string2SocketAddress(addr));
                     log.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
                     cw = new ChannelWrapper(channelFuture);
@@ -621,12 +633,20 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     class NettyClientHandler extends SimpleChannelInboundHandler<RemotingCommand> {
 
+        /**
+         * netty client 入站消息
+         * 如 producer发送消息 收到返回
+         * @param ctx
+         * @param msg
+         * @throws Exception
+         */
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
             processMessageReceived(ctx, msg);
         }
     }
 
+    // TODO: 2021/3/12
     class NettyConnectManageHandler extends ChannelDuplexHandler {
         @Override
         public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress,

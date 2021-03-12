@@ -458,12 +458,15 @@ public class MQClientAPIImpl {
             }
         } else {
             if (sendSmartMsg || msg instanceof MessageBatch) {
+                // RemotingCommand
+                // RequestCode.SEND_MESSAGE_V2 310
                 SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
                 request = RemotingCommand.createRequestCommand(msg instanceof MessageBatch ? RequestCode.SEND_BATCH_MESSAGE : RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
             } else {
                 request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
             }
         }
+        // RemotingCommand
         request.setBody(msg.getBody());
 
         switch (communicationMode) {
@@ -480,6 +483,7 @@ public class MQClientAPIImpl {
                     retryTimesWhenSendFailed, times, context, producer);
                 return null;
             case SYNC:
+                //
                 long costTimeSync = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTimeSync) {
                     throw new RemotingTooMuchRequestException("sendMessage call timeout");
@@ -505,6 +509,23 @@ public class MQClientAPIImpl {
         return this.processSendResponse(brokerName, msg, response);
     }
 
+    /**
+     *
+     * @param addr
+     * @param brokerName
+     * @param msg
+     * @param timeoutMillis
+     * @param request
+     * @param sendCallback
+     * @param topicPublishInfo
+     * @param instance
+     * @param retryTimesWhenSendFailed
+     * @param times
+     * @param context
+     * @param producer
+     * @throws InterruptedException
+     * @throws RemotingException
+     */
     private void sendMessageAsync(
         final String addr,
         final String brokerName,
@@ -550,10 +571,12 @@ public class MQClientAPIImpl {
                         }
 
                         try {
+                            // 执行用户的异步消息回调
                             sendCallback.onSuccess(sendResult);
                         } catch (Throwable e) {
                         }
 
+                        // 通过延时更新对应brokerName不可用的时间
                         producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), false);
                     } catch (Exception e) {
                         producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), true);
@@ -561,6 +584,7 @@ public class MQClientAPIImpl {
                             retryTimesWhenSendFailed, times, e, context, false, producer);
                     }
                 } else {
+                    // 有重试逻辑
                     producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), true);
                     if (!responseFuture.isSendRequestOK()) {
                         MQClientException ex = new MQClientException("send request failed", responseFuture.getCause());
@@ -581,6 +605,22 @@ public class MQClientAPIImpl {
         });
     }
 
+    /**
+     * 异步发送消息重试
+     * @param brokerName
+     * @param msg
+     * @param timeoutMillis
+     * @param request
+     * @param sendCallback
+     * @param topicPublishInfo
+     * @param instance
+     * @param timesTotal
+     * @param curTimes
+     * @param e
+     * @param context
+     * @param needRetry
+     * @param producer
+     */
     private void onExceptionImpl(final String brokerName,
         final Message msg,
         final long timeoutMillis,
@@ -1360,6 +1400,7 @@ public class MQClientAPIImpl {
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC, requestHeader);
 
+        //
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {

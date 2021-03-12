@@ -166,6 +166,7 @@ public class MQClientInstance {
                 String[] item = broker.split(":");
                 int nums = Integer.parseInt(item[1]);
                 for (int i = 0; i < nums; i++) {
+                    // 消息队列对象创建
                     MessageQueue mq = new MessageQueue(topic, item[0], i);
                     info.getMessageQueueList().add(mq);
                 }
@@ -206,6 +207,12 @@ public class MQClientInstance {
         return info;
     }
 
+    /**
+     * 生成 MessageQueue
+     * @param topic
+     * @param route
+     * @return
+     */
     public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic, final TopicRouteData route) {
         Set<MessageQueue> mqList = new HashSet<MessageQueue>();
         List<QueueData> qds = route.getQueueDatas();
@@ -605,10 +612,12 @@ public class MQClientInstance {
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
         DefaultMQProducer defaultMQProducer) {
         try {
-            if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+            if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.SECONDS)) { // MILLISECONDS -> SECONDS 调试用
                 try {
                     TopicRouteData topicRouteData;
                     if (isDefault && defaultMQProducer != null) {
+                        // 第一发送消息到新的topic 如果没有手动创建topic
+                        // 使用默认的“TBW102”topic获取路由信息
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             1000 * 3);
                         if (topicRouteData != null) {
@@ -638,7 +647,9 @@ public class MQClientInstance {
                             }
 
                             // Update Pub info
+                            // producer方用
                             {
+                                // 根据默认topic TBW102 路由信息生成该topic路由信息
                                 TopicPublishInfo publishInfo = topicRouteData2TopicPublishInfo(topic, topicRouteData);
                                 publishInfo.setHaveTopicRouterInfo(true);
                                 Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
@@ -646,6 +657,7 @@ public class MQClientInstance {
                                     Entry<String, MQProducerInner> entry = it.next();
                                     MQProducerInner impl = entry.getValue();
                                     if (impl != null) {
+                                        // 更新
                                         impl.updateTopicPublishInfo(topic, publishInfo);
                                     }
                                 }
@@ -1019,9 +1031,16 @@ public class MQClientInstance {
         return null;
     }
 
+    /**
+     * 根据消息队列MessageQueue的 brokerName 选择 brokerId=0 的 Broker Master 地址
+     * brokerName为 Broker 主从集群的名称
+     * @param brokerName
+     * @return
+     */
     public String findBrokerAddressInPublish(final String brokerName) {
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
+            // brokerId=0
             return map.get(MixAll.MASTER_ID);
         }
 

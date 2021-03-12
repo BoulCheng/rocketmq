@@ -23,6 +23,11 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 
+/**
+ * topic的发布信息
+ *
+ * producer会使用
+ */
 public class TopicPublishInfo {
     private boolean orderTopic = false;
     private boolean haveTopicRouterInfo = false;
@@ -68,6 +73,8 @@ public class TopicPublishInfo {
 
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName == null) {
+            // 如果为空，即第一次发生，未发生错误重试
+            // 直接轮询队列进行发送
             return selectOneMessageQueue();
         } else {
             int index = this.sendWhichQueue.getAndIncrement();
@@ -76,6 +83,7 @@ public class TopicPublishInfo {
                 if (pos < 0)
                     pos = 0;
                 MessageQueue mq = this.messageQueueList.get(pos);
+                //过滤上一次发送失败的broker集群的brokerName
                 if (!mq.getBrokerName().equals(lastBrokerName)) {
                     return mq;
                 }

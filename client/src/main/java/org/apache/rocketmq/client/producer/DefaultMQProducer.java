@@ -83,6 +83,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private volatile int defaultTopicQueueNums = 4;
 
     /**
+     * CommunicationMode.SYNC 同步发送消息默认超时3s
+     */
+    /**
      * Timeout for sending messages.
      */
     private int sendMsgTimeout = 3000;
@@ -93,12 +96,18 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private int compressMsgBodyOverHowmuch = 1024 * 4;
 
     /**
+     * 同步发送消息 默认重试2次 共3次
+     */
+    /**
      * Maximum number of retry to perform internally before claiming sending failure in synchronous mode. </p>
      *
      * This may potentially cause message duplication which is up to application developers to resolve.
      */
     private int retryTimesWhenSendFailed = 2;
 
+    /**
+     * 异步发送消息 默认重试2次
+     */
     /**
      * Maximum number of retry to perform internally before claiming sending failure in asynchronous mode. </p>
      *
@@ -917,6 +926,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         return this.defaultMQProducerImpl.send(batch(msgs), messageQueue, timeout);
     }
 
+    /**
+     * 设置异步回调线程池
+     * 如 producer 异步发送消息的回调
+     * @see SendCallback
+     */
     /**
      * Sets an Executor to be used for executing callback methods. If the Executor is not set, {@link
      * NettyRemotingClient#publicExecutor} will be used.

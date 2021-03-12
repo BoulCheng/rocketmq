@@ -162,6 +162,7 @@ public abstract class NettyRemotingAbstract {
                     processRequestCommand(ctx, cmd);
                     break;
                 case RESPONSE_COMMAND:
+                    //
                     processResponseCommand(ctx, cmd);
                     break;
                 default:
@@ -309,8 +310,17 @@ public abstract class NettyRemotingAbstract {
             responseTable.remove(opaque);
 
             if (responseFuture.getInvokeCallback() != null) {
+                /**
+                 * 执行回调
+                 * 如 producer 异步发送消息 回调 {@link MQClientAPIImpl#sendMessageAsync}
+                 */
                 executeInvokeCallback(responseFuture);
             } else {
+                /**
+                 * responseFuture.waitResponse(timeoutMillis) 会被通知
+                 * 如 producer 同步发送消息等待 会被通知
+                 * {@link NettyRemotingAbstract#invokeSyncImpl(Channel, RemotingCommand, long)}
+                 */
                 responseFuture.putResponse(cmd);
                 responseFuture.release();
             }
@@ -432,6 +442,7 @@ public abstract class NettyRemotingAbstract {
             channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture f) throws Exception {
+                    // netty 异步发送操作完成的回调
                     if (f.isSuccess()) {
                         responseFuture.setSendRequestOK(true);
                         return;
@@ -446,6 +457,7 @@ public abstract class NettyRemotingAbstract {
                 }
             });
 
+            // 等待返回 这里是rocketmq自身实现的ResponseFuture 用了CountDownLatch
             RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis);
             if (null == responseCommand) {
                 if (responseFuture.isSendRequestOK()) {
@@ -467,6 +479,10 @@ public abstract class NettyRemotingAbstract {
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         long beginStartTime = System.currentTimeMillis();
         final int opaque = request.getOpaque();
+        /**
+         * 并发控制
+         * @see NettySystemConfig#CLIENT_ASYNC_SEMAPHORE_VALUE
+         */
         boolean acquired = this.semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
         if (acquired) {
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);
@@ -499,6 +515,7 @@ public abstract class NettyRemotingAbstract {
             if (timeoutMillis <= 0) {
                 throw new RemotingTooMuchRequestException("invokeAsyncImpl invoke too fast");
             } else {
+                //
                 String info =
                     String.format("invokeAsyncImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d",
                         timeoutMillis,

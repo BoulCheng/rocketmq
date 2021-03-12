@@ -31,8 +31,15 @@ public class NettySystemConfig {
 
     public static final boolean NETTY_POOLED_BYTE_BUF_ALLOCATOR_ENABLE = //
         Boolean.parseBoolean(System.getProperty(COM_ROCKETMQ_REMOTING_NETTY_POOLED_BYTE_BUF_ALLOCATOR_ENABLE, "false"));
+
+    /**
+     * 异步发送消息 最大并发 Semaphore
+     */
     public static final int CLIENT_ASYNC_SEMAPHORE_VALUE = //
         Integer.parseInt(System.getProperty(COM_ROCKETMQ_REMOTING_CLIENT_ASYNC_SEMAPHORE_VALUE, "65535"));
+    /**
+     * 单边发送消息 最大并发 Semaphore
+     */
     public static final int CLIENT_ONEWAY_SEMAPHORE_VALUE =
         Integer.parseInt(System.getProperty(COM_ROCKETMQ_REMOTING_CLIENT_ONEWAY_SEMAPHORE_VALUE, "65535"));
     public static int socketSndbufSize =

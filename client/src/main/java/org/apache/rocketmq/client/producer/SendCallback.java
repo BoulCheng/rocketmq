@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.client.producer;
 
+/**
+ * 异步发送 回调方法
+ */
 public interface SendCallback {
     void onSuccess(final SendResult sendResult);
 

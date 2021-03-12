@@ -20,6 +20,8 @@ import io.netty.channel.Channel;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -39,6 +41,14 @@ public class ResponseFuture {
     private volatile boolean sendRequestOK = true;
     private volatile Throwable cause;
 
+    /**
+     *
+     * @param channel
+     * @param opaque
+     * @param timeoutMillis
+     * @param invokeCallback 如producer异步发送消息回调  {@link MQClientAPIImpl#sendMessageAsync}
+     * @param once
+     */
     public ResponseFuture(Channel channel, int opaque, long timeoutMillis, InvokeCallback invokeCallback,
         SemaphoreReleaseOnlyOnce once) {
         this.opaque = opaque;
@@ -67,11 +77,21 @@ public class ResponseFuture {
         return diff > this.timeoutMillis;
     }
 
+    /**
+     * 等待 countDownLatch.countDown() 即 {@link #putResponse(RemotingCommand)} 被调用
+     * @param timeoutMillis
+     * @return
+     * @throws InterruptedException
+     */
     public RemotingCommand waitResponse(final long timeoutMillis) throws InterruptedException {
         this.countDownLatch.await(timeoutMillis, TimeUnit.MILLISECONDS);
         return this.responseCommand;
     }
 
+    /**
+     * @see NettyRemotingAbstract#processResponseCommand(ChannelHandlerContext, RemotingCommand)  
+     * @param responseCommand
+     */
     public void putResponse(final RemotingCommand responseCommand) {
         this.responseCommand = responseCommand;
         this.countDownLatch.countDown();
