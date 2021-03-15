@@ -131,6 +131,9 @@ public class AllocateMappedFileService extends ServiceThread {
         }
     }
 
+    /**
+     * 创建 MappedFile的 服务线程
+     */
     public void run() {
         log.info(this.getServiceName() + " service started");
 

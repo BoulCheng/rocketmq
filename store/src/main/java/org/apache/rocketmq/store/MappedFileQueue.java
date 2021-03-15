@@ -29,6 +29,15 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
+/**
+ *
+ * 多个文件组成的一个文件队列  逻辑上当作一个大的文件处理
+ * 可以用在 CommitLog文件 和 ConsumeQueue文件的处理上
+ *
+ * /store/commitlog/{fileName}  是commitlog所在的文件夹 store/commitlog，对 所有 commitlog文件 进行封装成文件队列，逻辑上当作一个文件处理
+ * /store/consumequeue/{topic}/{queueId}/{fileName} 对某个topic下某个队列下的所有文件进行封装成一个文件处理
+ *
+ */
 public class MappedFileQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
@@ -39,10 +48,17 @@ public class MappedFileQueue {
 
     private final int mappedFileSize;
 
+    /**
+     *
+     */
     private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
 
     private final AllocateMappedFileService allocateMappedFileService;
 
+    /**
+     *
+     * 如 相对整个commitlog目录下所有的commitlog文件的刷盘位置 总的刷盘偏移
+     */
     private long flushedWhere = 0;
     private long committedWhere = 0;
 
@@ -204,12 +220,15 @@ public class MappedFileQueue {
         }
 
         if (createOffset != -1 && needCreate) {
+            //如 commitlog目录下的commitlog文件名
+            //如 消费队列文件 文件也是偏移量
             String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
             String nextNextFilePath = this.storePath + File.separator
                 + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
             MappedFile mappedFile = null;
 
             if (this.allocateMappedFileService != null) {
+                //可以 创建下下个commitlog 文件
                 mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
                     nextNextFilePath, this.mappedFileSize);
             } else {
@@ -453,6 +472,7 @@ public class MappedFileQueue {
     }
 
     /**
+     * 如 从commitlog文件列表(/store/commitlog目录)  选择 offset 所在的 commitlog文件
      * Finds a mapped file by offset.
      *
      * @param offset Offset.
@@ -472,6 +492,7 @@ public class MappedFileQueue {
                         this.mappedFileSize,
                         this.mappedFiles.size());
                 } else {
+                    //如 从commitlog文件列表(/store/commitlog目录)  选择 offset 所在的 commitlog文件
                     int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
                     MappedFile targetFile = null;
                     try {

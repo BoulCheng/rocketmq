@@ -22,6 +22,7 @@ package org.apache.rocketmq.store;
 public class AppendMessageResult {
     // Return code
     private AppendMessageStatus status;
+    //如 相对整个commitlog目录下所有的commitlog文件的物理偏移
     // Where to start writing
     private long wroteOffset;
     // Write Bytes
