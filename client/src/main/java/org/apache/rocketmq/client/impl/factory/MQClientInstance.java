@@ -219,6 +219,7 @@ public class MQClientInstance {
         for (QueueData qd : qds) {
             if (PermName.isReadable(qd.getPerm())) {
                 for (int i = 0; i < qd.getReadQueueNums(); i++) {
+                    // 根据topic路由信息 生成 队列信息； broker 队列id
                     MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
                     mqList.add(mq);
                 }
@@ -612,12 +613,13 @@ public class MQClientInstance {
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
         DefaultMQProducer defaultMQProducer) {
         try {
-            if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.SECONDS)) { // MILLISECONDS -> SECONDS 调试用
+            if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) { // MILLISECONDS -> SECONDS 调试用
                 try {
                     TopicRouteData topicRouteData;
                     if (isDefault && defaultMQProducer != null) {
                         // 第一发送消息到新的topic 如果没有手动创建topic
                         // 使用默认的“TBW102”topic获取路由信息
+                        // 获取默认topic路由信息
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             1000 * 3);
                         if (topicRouteData != null) {
@@ -664,6 +666,7 @@ public class MQClientInstance {
                             }
 
                             // Update sub info
+                            // consumer方用
                             {
                                 Set<MessageQueue> subscribeInfo = topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                                 Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
@@ -671,6 +674,7 @@ public class MQClientInstance {
                                     Entry<String, MQConsumerInner> entry = it.next();
                                     MQConsumerInner impl = entry.getValue();
                                     if (impl != null) {
+                                        //更新 消费方 队列信息 topicSubscribeInfoTable
                                         impl.updateTopicSubscribeInfo(topic, subscribeInfo);
                                     }
                                 }
