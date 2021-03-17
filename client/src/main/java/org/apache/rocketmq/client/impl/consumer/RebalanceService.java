@@ -32,12 +32,25 @@ public class RebalanceService extends ServiceThread {
         this.mqClientFactory = mqClientFactory;
     }
 
+    /**
+     *
+     *
+     * 集群模式
+     * 消息消费队列在同一消费组不同消费者之间的负载均衡，其核心设计理念是在一个消息消费队列在同一时间只允许被同一消费组内的一个消费者消费，一个消息消费者能同时消费多个消息队列
+     * 默认采用平均分配算法 根据该topic下总的队列和所有消费者clientId为当前消费者(clientId)分配队列 然后每个队列构建一个PullRequest并放入阻塞队列 进一步传递给PullMessageService处理
+     */
     @Override
     public void run() {
         log.info(this.getServiceName() + " service started");
 
         while (!this.isStopped()) {
             this.waitForRunning(waitInterval);
+            /**
+             * 负载均衡策略 分配 MessageQueue
+             * 并生成 PullRequest 放入
+             * @see PullMessageService#pullRequestQueue 阻塞队列
+             * 传递给PullMessageService处理
+             */
             this.mqClientFactory.doRebalance();
         }
 
