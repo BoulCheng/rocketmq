@@ -82,6 +82,7 @@ public class CommitLog {
         if (FlushDiskType.SYNC_FLUSH == defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
             this.flushCommitLogService = new GroupCommitService();
         } else {
+            //
             this.flushCommitLogService = new FlushRealTimeService();
         }
 
@@ -926,6 +927,7 @@ public class CommitLog {
         // Asynchronous flush
         else {
             if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+                //
                 flushCommitLogService.wakeup();
             } else  {
                 commitLogService.wakeup();
@@ -1238,6 +1240,10 @@ public class CommitLog {
         protected static final int RETRY_TIMES_OVER = 10;
     }
 
+    /**
+     * 异步刷盘
+     * 使用堆外直接内存池化技术 的刷盘
+     */
     class CommitRealTimeService extends FlushCommitLogService {
 
         private long lastCommitTimestamp = 0;
@@ -1265,10 +1271,12 @@ public class CommitLog {
                 }
 
                 try {
+                    // 将堆外直接内存缓存 提交到 fileChannel 然后再刷盘
                     boolean result = CommitLog.this.mappedFileQueue.commit(commitDataLeastPages);
                     long end = System.currentTimeMillis();
                     if (!result) {
                         this.lastCommitTimestamp = end; // result = false means some data committed.
+                        // 刷盘
                         //now wake up flush thread.
                         flushCommitLogService.wakeup();
                     }
@@ -1291,19 +1299,29 @@ public class CommitLog {
         }
     }
 
+    /**
+     * 异步刷盘 默认4页未刷才进行刷盘 或 10s进行一次彻底刷盘
+     * @see MappedFile#OS_PAGE_SIZE
+     */
     class FlushRealTimeService extends FlushCommitLogService {
         private long lastFlushTimestamp = 0;
         private long printTimes = 0;
 
+        /**
+         * 刷盘
+         */
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
 
             while (!this.isStopped()) {
                 boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
 
+                // CommitLog刷盘间隔 500
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
+                // 异步刷盘最小页数 指4页未刷才进行刷盘
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
 
+                // 10s进行一次彻底刷盘
                 int flushPhysicQueueThoroughInterval =
                     CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
 
@@ -1319,8 +1337,10 @@ public class CommitLog {
 
                 try {
                     if (flushCommitLogTimed) {
+                        // 定时刷盘
                         Thread.sleep(interval);
                     } else {
+                        // 消息写入内存后可以被唤醒
                         this.waitForRunning(interval);
                     }
 
@@ -1329,6 +1349,7 @@ public class CommitLog {
                     }
 
                     long begin = System.currentTimeMillis();
+                    // 刷盘
                     CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
                     long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
                     if (storeTimestamp > 0) {
@@ -1403,6 +1424,9 @@ public class CommitLog {
     }
 
     /**
+     * 同步刷盘 立即进行消息数据持久化 不等待多少页未刷才进行刷盘
+     */
+    /**
      * GroupCommit Service
      */
     class GroupCommitService extends FlushCommitLogService {
@@ -1416,6 +1440,9 @@ public class CommitLog {
             this.wakeup();
         }
 
+        /**
+         * 为了读写分离 并发访问处理
+         */
         private void swapRequests() {
             List<GroupCommitRequest> tmp = this.requestsWrite;
             this.requestsWrite = this.requestsRead;

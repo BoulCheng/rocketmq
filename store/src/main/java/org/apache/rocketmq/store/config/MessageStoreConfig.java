@@ -44,6 +44,9 @@ public class MessageStoreConfig {
      */
     // CommitLog file size,default is 1G
     private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
+    /**
+     * 一个消息队列文件的大小
+     */
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
@@ -54,6 +57,9 @@ public class MessageStoreConfig {
     // this will be set by pipe of calculate filter bit map.
     private int bitMapLengthConsumeQueueExt = 64;
 
+    /**
+     * CommitLog默认异步刷盘间隔
+     */
     // CommitLog flush interval
     // flush data to disk
     @ImportantField
@@ -70,6 +76,9 @@ public class MessageStoreConfig {
      */
     private boolean useReentrantLockWhenPutMessage = false;
 
+    /**
+     * 是否定时调度
+     */
     // Whether schedule flush,default is real-time
     @ImportantField
     private boolean flushCommitLogTimed = false;
@@ -99,6 +108,10 @@ public class MessageStoreConfig {
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.
     // This check adds some overhead,so it may be disabled in cases seeking extreme performance.
     private boolean checkCRCOnRecover = true;
+    /**
+     * 异步刷盘最小页数
+     * 指4页未刷才进行刷盘
+     */
     // How many pages are to be flushed when flush CommitLog
     private int flushCommitLogLeastPages = 4;
     // How many pages are to be committed when commit data to file
@@ -136,8 +149,10 @@ public class MessageStoreConfig {
     private int haSlaveFallbehindMax = 1024 * 1024 * 256;
     @ImportantField
     private BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
+    // 默认异步刷盘
     @ImportantField
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
+    //
     private int syncFlushTimeout = 1000 * 5;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private long flushDelayOffsetInterval = 1000 * 10;

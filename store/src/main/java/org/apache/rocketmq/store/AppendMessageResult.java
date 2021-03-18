@@ -31,6 +31,7 @@ public class AppendMessageResult {
     private String msgId;
     // Message storage timestamp
     private long storeTimestamp;
+    // topic下消费队列的偏移
     // Consume queue's offset(step by one)
     private long logicsOffset;
     private long pagecacheRT = 0;

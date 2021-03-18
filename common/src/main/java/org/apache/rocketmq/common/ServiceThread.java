@@ -136,6 +136,9 @@ public abstract class ServiceThread implements Runnable {
         waitPoint.reset();
 
         try {
+            /**
+             * 调用了{@link #wakeup()} 会被唤醒
+             */
             waitPoint.await(interval, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             log.error("Interrupted", e);

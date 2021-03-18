@@ -48,6 +48,9 @@ import sun.nio.ch.DirectBuffer;
  * 如 commitlog文件，比如store/commitlog/00000000000000000000 文件
  */
 public class MappedFile extends ReferenceResource {
+    /**
+     * 刷盘 每页大小4M
+     */
     public static final int OS_PAGE_SIZE = 1024 * 4;
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
@@ -288,18 +291,32 @@ public class MappedFile extends ReferenceResource {
     }
 
     /**
-     * @return The current flushed position
+     *
+     * 通知OS刷盘
+     * @see FileChannel#force(boolean)
+     * @see MappedByteBuffer#force() or  FileChannel#force(boolean)
+     *
+     * @param flushLeastPages 控制多少页未刷才进行刷盘 异步刷盘和同步刷盘的区别  同步flushLeastPages=0 异步flushLeastPages=4
+     * @see org.apache.rocketmq.store.config.MessageStoreConfig#flushCommitLogLeastPages
+     *
+     * @return
      */
     public int flush(final int flushLeastPages) {
-        if (this.isAbleToFlush(flushLeastPages)) {
+        if (this.isAbleToFlush(flushLeastPages)) {// 控制多少页未刷才进行刷盘 异步刷盘和同步刷盘的区别
             if (this.hold()) {
                 int value = getReadPosition();
 
                 try {
                     //We only append data to fileChannel or mappedByteBuffer, never both.
                     if (writeBuffer != null || this.fileChannel.position() != 0) {
+                        // 通知OS刷盘
+
+                        // 如果使用了堆外直接内存池化
+                        // 会将堆外直接内存(writeBuffer) 提交到 fileChannel, 然后再刷盘;
+                        // 在这之前 堆外直接内存(writeBuffer) 已经提交到 fileChannel
                         this.fileChannel.force(false);
                     } else {
+                        // 通知OS刷盘
                         this.mappedByteBuffer.force();
                     }
                 } catch (Throwable e) {
@@ -323,6 +340,7 @@ public class MappedFile extends ReferenceResource {
         }
         if (this.isAbleToCommit(commitLeastPages)) {
             if (this.hold()) {
+                //堆外直接内存提交到fileChannel
                 commit0(commitLeastPages);
                 this.release();
             } else {
@@ -339,6 +357,10 @@ public class MappedFile extends ReferenceResource {
         return this.committedPosition.get();
     }
 
+    /**
+     * 堆外直接内存 -> fileChannel
+     * @param commitLeastPages
+     */
     protected void commit0(final int commitLeastPages) {
         int writePos = this.wrotePosition.get();
         int lastCommittedPosition = this.committedPosition.get();
@@ -357,6 +379,11 @@ public class MappedFile extends ReferenceResource {
         }
     }
 
+    /**
+     * 控制多少页未刷才进行刷盘
+     * @param flushLeastPages
+     * @return
+     */
     private boolean isAbleToFlush(final int flushLeastPages) {
         int flush = this.flushedPosition.get();
         int write = getReadPosition();
