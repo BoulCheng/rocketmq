@@ -939,6 +939,7 @@ public class CommitLog {
     public CompletableFuture<PutMessageStatus> submitReplicaRequest(AppendMessageResult result, PutMessageResult putMessageResult,
                                                         MessageExt messageExt) {
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
+            //同步-同步数据
             HAService service = this.defaultMessageStore.getHaService();
             if (messageExt.isWaitStoreMsgOK()) {
                 if (service.isSlaveOK(result.getWroteBytes() + result.getWroteOffset())) {
@@ -953,6 +954,7 @@ public class CommitLog {
                 }
             }
         }
+        // 默认异步同步数据
         return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
     }
 

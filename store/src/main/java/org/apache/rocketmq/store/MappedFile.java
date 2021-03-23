@@ -447,6 +447,11 @@ public class MappedFile extends ReferenceResource {
         return null;
     }
 
+    /**
+     *
+     * @param pos
+     * @return 可以理解为一个对该commitlog文件的一个具体操作的封装  设置了 position 、limit
+     */
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
         int readPosition = getReadPosition();
         if (pos < readPosition && pos >= 0) {

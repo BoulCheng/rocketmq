@@ -48,6 +48,7 @@ public class HAConnection {
         this.socketChannel.socket().setTcpNoDelay(true);
         this.socketChannel.socket().setReceiveBufferSize(1024 * 64);
         this.socketChannel.socket().setSendBufferSize(1024 * 64);
+        // 连接的读写分离
         this.writeSocketService = new WriteSocketService(this.socketChannel);
         this.readSocketService = new ReadSocketService(this.socketChannel);
         this.haService.getConnectionCount().incrementAndGet();
@@ -190,6 +191,9 @@ public class HAConnection {
         }
     }
 
+    /**
+     * HA 同步数据 broker master 发送commitlog文件数据给 broker slave
+     */
     class WriteSocketService extends ServiceThread {
         private final Selector selector;
         private final SocketChannel socketChannel;
@@ -267,6 +271,7 @@ public class HAConnection {
                             continue;
                     }
 
+                    //根据nextTransferFromWhere 从 commitlog 目录下选择commitlog文件 并确定该commitlog文件中要发送的数据
                     SelectMappedBufferResult selectResult =
                         HAConnection.this.haService.getDefaultMessageStore().getCommitLogData(this.nextTransferFromWhere);
                     if (selectResult != null) {
@@ -288,6 +293,7 @@ public class HAConnection {
                         this.byteBufferHeader.putInt(size);
                         this.byteBufferHeader.flip();
 
+                        //broker master 通过与broker slave的tcp连接 发送数据给slave
                         this.lastWriteOver = this.transferData();
                     } else {
 
@@ -327,6 +333,11 @@ public class HAConnection {
             HAConnection.log.info(this.getServiceName() + " service end");
         }
 
+        /**
+         * 发送消息数据给broker slave
+         * @return
+         * @throws Exception
+         */
         private boolean transferData() throws Exception {
             int writeSizeZeroTimes = 0;
             // Write Header
