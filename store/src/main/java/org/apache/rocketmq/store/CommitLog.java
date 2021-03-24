@@ -155,11 +155,19 @@ public class CommitLog {
         return this.getData(offset, offset == 0);
     }
 
+    /***
+     *
+     * @param offset
+     * @param returnFirstOnNotFound
+     * @return  可理解为对某个commitlog文件的一个具体操作的封装  设置了 position 、limit
+     */
     public SelectMappedBufferResult getData(final long offset, final boolean returnFirstOnNotFound) {
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
+        //从commitlog文件列表(/store/commitlog目录)  选择 offset 所在的 commitlog文件
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, returnFirstOnNotFound);
         if (mappedFile != null) {
             int pos = (int) (offset % mappedFileSize);
+            // 可以理解为一个对该commitlog文件的一个具体操作的封装  设置了 position 、limit
             SelectMappedBufferResult result = mappedFile.selectMappedBuffer(pos);
             return result;
         }
