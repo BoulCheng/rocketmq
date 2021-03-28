@@ -32,6 +32,7 @@ public class PullSysFlag {
         }
 
         if (suspend) {
+            // 发送拉取消息 suspend = true
             flag |= FLAG_SUSPEND;
         }
 

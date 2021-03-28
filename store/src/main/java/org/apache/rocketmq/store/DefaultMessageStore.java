@@ -578,6 +578,7 @@ public class DefaultMessageStore implements MessageStore {
 
         final long maxOffsetPy = this.commitLog.getMaxOffset();
 
+        // 找到逻辑消费队列
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
             minOffset = consumeQueue.getMinOffsetInQueue();
@@ -600,6 +601,7 @@ public class DefaultMessageStore implements MessageStore {
                     nextBeginOffset = nextOffsetCorrection(offset, maxOffset);
                 }
             } else {
+                // 逻辑消费队列数据
                 SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(offset);
                 if (bufferConsumeQueue != null) {
                     try {
@@ -613,7 +615,9 @@ public class DefaultMessageStore implements MessageStore {
                         final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
                         ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
                         for (; i < bufferConsumeQueue.getSize() && i < maxFilterMessageCount; i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                            // 总的commitlog物理偏移 相对于/store/commitlog/{fileName} 所有文件组成的一个逻辑大文件
                             long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
+                            // 消息大小
                             int sizePy = bufferConsumeQueue.getByteBuffer().getInt();
                             long tagsCode = bufferConsumeQueue.getByteBuffer().getLong();
 
@@ -644,6 +648,7 @@ public class DefaultMessageStore implements MessageStore {
                                 }
                             }
 
+                            // 从 ConsumeQueue读取到一条记录后，会用它记录的消息tag hash值去做过滤，由于在服务端只是根据hashcode进行判断，无法精确对tag原始字符串进行过滤，故在消息消费端拉取到消息后，还需要对消息的原始tag字符串进行比对，如果不同，则丢弃该消息，不进行消息消费
                             if (messageFilter != null
                                 && !messageFilter.isMatchedByConsumeQueue(isTagsCodeLegal ? tagsCode : null, extRet ? cqExtUnit : null)) {
                                 if (getResult.getBufferTotalSize() == 0) {
@@ -653,6 +658,7 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
+                            //从commitlog文件中获取 一条消息数据 消费
                             SelectMappedBufferResult selectResult = this.commitLog.getMessage(offsetPy, sizePy);
                             if (null == selectResult) {
                                 if (getResult.getBufferTotalSize() == 0) {
@@ -1201,6 +1207,13 @@ public class DefaultMessageStore implements MessageStore {
         return null;
     }
 
+    /**
+     * 根据 topic queueId 获取 该topic、queueId对应的消费队列
+     * @see ConsumeQueue#mappedFileQueue 某个队列( /store/consumequeue/{topic}/{queueId}/ )下的 多个消息队列文件组成的一个文件队列  逻辑上当作一个大的文件处理
+     * @param topic
+     * @param queueId
+     * @return ConsumeQueue 代表一个topic下的一个队列 可以操作该队列下的所有队列文件   该队列下的所有队列文件组成一个大的逻辑文件 ConsumeQueue#mappedFileQueue
+     */
     public ConsumeQueue findConsumeQueue(String topic, int queueId) {
         ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
         if (null == map) {
