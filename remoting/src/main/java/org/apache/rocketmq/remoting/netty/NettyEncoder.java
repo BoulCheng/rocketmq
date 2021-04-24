@@ -31,10 +31,21 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public class NettyEncoder extends MessageToByteEncoder<RemotingCommand> {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
+    /**
+     * 整体结构为：Length | Header length | Header data | Body
+     * 消息总长度放在消息头部4个字节 解码时采用 NettyDecoder extends LengthFieldBasedFrameDecoder
+     * @param ctx
+     * @param remotingCommand
+     * @param out
+     * @throws Exception
+     */
     @Override
     public void encode(ChannelHandlerContext ctx, RemotingCommand remotingCommand, ByteBuf out)
         throws Exception {
         try {
+            // 先写入header再写入body
+
+            // 先写数据总长度，再写入header长度，最后写入header的数据
             ByteBuffer header = remotingCommand.encodeHeader();
             out.writeBytes(header);
             byte[] body = remotingCommand.getBody();
