@@ -54,8 +54,17 @@ public class BrokerStartup {
     public static String configFile = null;
     public static InternalLogger log;
 
+    /**
+     * broker 主类
+     * IDEA debug ->  config env  ROCKETMQ_HOME
+     * e.g. ROCKETMQ_HOME=/Users/apple/tool/rocketmq-all-4.7.1-bin-release
+     * @param args
+     */
     public static void main(String[] args) {
-        start(createBrokerController(args));
+        String[] args2 = new String[2];
+        args2[0] = "-n";
+        args2[1] = "localhost:9876";
+        start(createBrokerController(args2));
     }
 
     public static BrokerController start(BrokerController controller) {

@@ -43,3 +43,10 @@ fi
 export ROCKETMQ_HOME
 
 sh ${ROCKETMQ_HOME}/bin/runbroker.sh org.apache.rocketmq.broker.BrokerStartup $@
+
+#usage: mqbroker [-c <arg>] [-h] [-m] [-n <arg>] [-p]
+# -c,--configFile <arg>       Broker config properties file
+# -h,--help                   Print help
+# -m,--printImportantConfig   Print important config item
+# -n,--namesrvAddr <arg>      Name server address list, eg: 192.168.0.1:9876;192.168.0.2:9876
+# -p,--printConfigItem        Print all config item
