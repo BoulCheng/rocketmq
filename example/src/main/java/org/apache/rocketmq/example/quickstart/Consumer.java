@@ -48,6 +48,7 @@ public class Consumer {
          * }
          * </pre>
          */
+        consumer.setNamesrvAddr("localhost:9876");
 
         /*
          * Specify where to start in case the specified consumer group is a brand new one.
@@ -58,8 +59,7 @@ public class Consumer {
         /*
          * Subscribe one more more topics to consume.
          */
-        consumer.subscribe("TopicTest", "*");
-
+        consumer.subscribe("TopicTest", "*"/*Tag */);
         /*
          *  Register callback to execute on arrival of messages fetched from brokers.
          */

@@ -44,6 +44,8 @@ public class Producer {
          * }
          * </pre>
          */
+        producer.setNamesrvAddr("localhost:9876");
+        producer.setSendMsgTimeout(3000000);
 
         /*
          * Launch the instance.
@@ -52,7 +54,6 @@ public class Producer {
 
         for (int i = 0; i < 1000; i++) {
             try {
-
                 /*
                  * Create a message instance, specifying topic, tag and message body.
                  */
@@ -65,7 +66,7 @@ public class Producer {
                  * Call send message to deliver message to one of brokers.
                  */
                 SendResult sendResult = producer.send(msg);
-
+                //producer.send(new Message(topic, tag, keys, info.getBytes(StandardCharsets.UTF_8)));
                 System.out.printf("%s%n", sendResult);
             } catch (Exception e) {
                 e.printStackTrace();
