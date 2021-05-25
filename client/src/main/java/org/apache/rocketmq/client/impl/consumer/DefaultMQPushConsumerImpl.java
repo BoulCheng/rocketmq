@@ -413,6 +413,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         boolean commitOffsetEnable = false;
         long commitOffsetValue = 0L;
         if (MessageModel.CLUSTERING == this.defaultMQPushConsumer.getMessageModel()) {
+            // 从内存获取
             commitOffsetValue = this.offsetStore.readOffset(pullRequest.getMessageQueue(), ReadOffsetType.READ_FROM_MEMORY);
             if (commitOffsetValue > 0) {
                 commitOffsetEnable = true;
@@ -1029,6 +1030,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             this.rebalanceImpl.doRebalance(this.isConsumeOrderly());
         }
     }
+
 
     @Override
     public void persistConsumerOffset() {

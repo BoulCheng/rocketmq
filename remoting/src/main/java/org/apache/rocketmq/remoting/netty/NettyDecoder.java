@@ -28,7 +28,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
  * 整体结构为：Length | Header length | Header data | Body
- * LengthFieldBasedFrameDecoder 解码
+ * LengthFieldBasedFrameDecoder 解码 LengthFieldBasedFrameDecoder：指定长度来标识整包消息，通过在包头指定整包长度来约定包长。
  */
 public class NettyDecoder extends LengthFieldBasedFrameDecoder {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);

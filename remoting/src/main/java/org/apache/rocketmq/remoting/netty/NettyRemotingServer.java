@@ -204,6 +204,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 .option(ChannelOption.SO_BACKLOG, 1024)
                 .option(ChannelOption.SO_REUSEADDR, true)
                 .option(ChannelOption.SO_KEEPALIVE, false)
+                    // 当应用层协议通过 TCP 协议传输数据时，实际上待发送的数据先被写入了 TCP 协议的缓冲区，如果用户开启了 Nagle 算法，那么 TCP 协议可能不会立刻发送写入的数据，它会等待缓冲区中数据超过最大数据段（MSS）或者上一个数据段被 ACK 时才会发送缓冲区中的数据
+                    // Nagle 算法确实能够在数据包较小时提高网络带宽的利用率并减少 TCP 和 IP 协议头带来的额外开销，但是使用该算法也可能会导致应用层协议多次写入的数据被合并或者拆分发送(当接收方从 TCP 协议栈中读取数据时会发现不相关的数据出现在了同一个数据段中，应用层协议可能没有办法对它们进行拆分和重组)
+                    // 关闭 Nagle 算法
                 .childOption(ChannelOption.TCP_NODELAY, true)
                 .childOption(ChannelOption.SO_SNDBUF, nettyServerConfig.getServerSocketSndBufSize())
                 .childOption(ChannelOption.SO_RCVBUF, nettyServerConfig.getServerSocketRcvBufSize())

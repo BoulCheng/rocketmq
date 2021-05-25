@@ -23,6 +23,10 @@ import org.apache.rocketmq.common.message.MessageQueue;
  */
 public class ConsumeConcurrentlyContext {
     private final MessageQueue messageQueue;
+
+    /**
+     *
+     */
     /**
      * Message consume retry strategy<br>
      * -1,no retry,put into DLQ directly<br>

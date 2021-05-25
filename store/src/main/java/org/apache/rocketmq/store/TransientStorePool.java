@@ -30,6 +30,9 @@ import sun.nio.ch.DirectBuffer;
 
 /**
  * 堆外直接内存 池化
+ *
+ * 消息直接存放在直接内存 -> OS缓存 -> 刷盘
+ * 消息存放在堆内存 -> () -> OS缓存 -> 刷盘
  */
 public class TransientStorePool {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);

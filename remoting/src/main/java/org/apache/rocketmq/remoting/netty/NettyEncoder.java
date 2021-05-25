@@ -27,12 +27,16 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+/**
+ *
+ */
 @ChannelHandler.Sharable
 public class NettyEncoder extends MessageToByteEncoder<RemotingCommand> {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
     /**
      * 整体结构为：Length | Header length | Header data | Body
+     * Length =  Header length + Header data length + Body length
      * 消息总长度放在消息头部4个字节 解码时采用 NettyDecoder extends LengthFieldBasedFrameDecoder
      * @param ctx
      * @param remotingCommand

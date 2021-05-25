@@ -92,6 +92,10 @@ public class TopicPublishInfo {
         }
     }
 
+    /**
+     * 使用自增长的数字取余数的方式
+     * @return
+     */
     public MessageQueue selectOneMessageQueue() {
         int index = this.sendWhichQueue.getAndIncrement();
         int pos = Math.abs(index) % this.messageQueueList.size();
