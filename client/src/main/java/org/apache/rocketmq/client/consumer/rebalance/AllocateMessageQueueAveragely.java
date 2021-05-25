@@ -69,4 +69,43 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
     public String getName() {
         return "AVG";
     }
+
+
+    public static void main(String[] args) {
+        AllocateMessageQueueAveragely allocateMessageQueueAveragely = new AllocateMessageQueueAveragely();
+        List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
+        MessageQueue messageQueue = new MessageQueue();
+        messageQueue.setBrokerName("b1");
+        messageQueue.setTopic("t1");
+        messageQueue.setQueueId(1);
+        mqAll.add(messageQueue);
+
+        messageQueue = new MessageQueue();
+        messageQueue.setBrokerName("b1");
+        messageQueue.setTopic("t1");
+        messageQueue.setQueueId(2);
+        mqAll.add(messageQueue);
+
+
+        messageQueue = new MessageQueue();
+        messageQueue.setBrokerName("b1");
+        messageQueue.setTopic("t1");
+        messageQueue.setQueueId(3);
+        mqAll.add(messageQueue);
+
+        messageQueue = new MessageQueue();
+        messageQueue.setBrokerName("b1");
+        messageQueue.setTopic("t1");
+        messageQueue.setQueueId(4);
+        mqAll.add(messageQueue);
+
+
+        List<String> list = new ArrayList<String>();
+        list.addAll(Arrays.asList("m1", "m2", "m3"));
+        List<MessageQueue> messageQueues = allocateMessageQueueAveragely.allocate("g1", "m1", mqAll, list);
+
+        System.out.println(messageQueues);
+        // 连续分配的方式
+        //[MessageQueue [topic=t1, brokerName=b1, queueId=1], MessageQueue [topic=t1, brokerName=b1, queueId=2]]
+    }
 }

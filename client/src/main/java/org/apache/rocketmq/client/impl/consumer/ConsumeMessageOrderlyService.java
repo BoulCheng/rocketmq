@@ -75,6 +75,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
         this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
         this.consumeRequestQueue = new LinkedBlockingQueue<Runnable>();
 
+        // 同样是多线程处理 但消费时首先获取 MessageQueue 对应的 objectLock 锁进行并发控制，一个队列的消费是顺序，但如果是消费多个队列，多个队列的消费还是无序的
         this.consumeExecutor = new ThreadPoolExecutor(
             this.defaultMQPushConsumer.getConsumeThreadMin(),
             this.defaultMQPushConsumer.getConsumeThreadMax(),
@@ -311,7 +312,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), msgs.size());
-                    if (checkReconsumeTimes(msgs)) {
+                    if (checkReconsumeTimes(msgs)) { // 重新消费次数内
+                        // 消息重试次数 + 1，在延时一段时间后继续重试
                         consumeRequest.getProcessQueue().makeMessageToCosumeAgain(msgs);
                         this.submitConsumeRequestLater(
                             consumeRequest.getProcessQueue(),
@@ -420,7 +422,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             }
 
             final Object objLock = messageQueueLock.fetchLockObject(this.messageQueue);
-            synchronized (objLock) {
+            synchronized (objLock) {// 消费时首先获取 MessageQueue 对应的 objectLock，保证当前进程内只有一个线程在处理对应的的 MessageQueue
                 if (MessageModel.BROADCASTING.equals(ConsumeMessageOrderlyService.this.defaultMQPushConsumerImpl.messageModel())
                     || (this.processQueue.isLocked() && !this.processQueue.isLockExpired())) {
                     final long beginTime = System.currentTimeMillis();
@@ -453,6 +455,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                         final int consumeBatchSize =
                             ConsumeMessageOrderlyService.this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
 
+                        // 从 ProcessQueue 的 msgTreeMap 中按 offset 从低到高的顺序取消息，从而保证了消息的顺序性
                         List<MessageExt> msgs = this.processQueue.takeMessages(consumeBatchSize);
                         defaultMQPushConsumerImpl.resetRetryAndNamespace(msgs, defaultMQPushConsumer.getConsumerGroup());
                         if (!msgs.isEmpty()) {
@@ -485,6 +488,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                                     break;
                                 }
 
+                                // 执行用户定义的消费逻辑，返回消费状态
                                 status = messageListener.consumeMessage(Collections.unmodifiableList(msgs), context);
                             } catch (Throwable e) {
                                 log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",

@@ -131,6 +131,7 @@ public class ProcessQueue {
             try {
                 int validMsgCnt = 0;
                 for (MessageExt msg : msgs) {
+                    // queueOffset 排序
                     MessageExt old = msgTreeMap.put(msg.getQueueOffset(), msg);
                     if (null == old) {
                         validMsgCnt++;
@@ -305,6 +306,7 @@ public class ProcessQueue {
             try {
                 if (!this.msgTreeMap.isEmpty()) {
                     for (int i = 0; i < batchSize; i++) {
+                        // 从 ProcessQueue 的 msgTreeMap 中按 offset 从低到高的顺序取消息，从而保证了消息的顺序性
                         Map.Entry<Long, MessageExt> entry = this.msgTreeMap.pollFirstEntry();
                         if (entry != null) {
                             result.add(entry.getValue());

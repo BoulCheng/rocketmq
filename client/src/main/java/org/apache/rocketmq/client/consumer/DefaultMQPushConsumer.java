@@ -279,6 +279,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param consumerGroup Consumer group.
      */
     public DefaultMQPushConsumer(final String consumerGroup) {
+        // AllocateMessageQueueAveragely
         this(null, consumerGroup, null, new AllocateMessageQueueAveragely());
     }
 
@@ -684,6 +685,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, brokerName);
     }
 
+    /**
+     * 更新
+     * @see org.apache.rocketmq.client.impl.consumer.RebalanceImpl#topicSubscribeInfoTable
+     * @param topic message topic
+     * @return
+     * @throws MQClientException
+     */
     @Override
     public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
         return this.defaultMQPushConsumerImpl.fetchSubscribeMessageQueues(withNamespace(topic));

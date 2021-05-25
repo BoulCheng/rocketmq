@@ -329,6 +329,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                 DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullTPS(pullRequest.getConsumerGroup(),
                                     pullRequest.getMessageQueue().getTopic(), pullResult.getMsgFoundList().size());
 
+                                // 拉取到的消息会放入 MessageQueue 对应的 ProcessQueue
                                 boolean dispatchToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
                                 //业务处理消息回调 如 MessageListenerConcurrently
                                 DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(

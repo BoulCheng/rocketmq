@@ -243,6 +243,7 @@ public class MQClientInstance {
                     this.mQClientAPIImpl.start();
                     // Start various schedule tasks
                     this.startScheduledTask();
+                    //
                     // Start pull service
                     this.pullMessageService.start();
                     //
