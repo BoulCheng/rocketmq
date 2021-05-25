@@ -33,7 +33,7 @@ public class ThreadLocalIndex {
         }
 
         index = Math.abs(index + 1);
-        if (index < 0)
+        if (index < 0) //Integer最大值再+1会变成负数 置0从新开始
             index = 0;
 
         this.threadLocalIndex.set(index);

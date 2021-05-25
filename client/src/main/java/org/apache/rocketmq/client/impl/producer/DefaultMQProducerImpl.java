@@ -754,7 +754,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     topicWithNamespace = true;
                 }
 
-                int sysFlag = 0;
+                int sysFlag = 0; // 默认0 即 MessageSysFlag.TRANSACTION_NOT_TYPE
                 boolean msgBodyCompressed = false;
                 if (this.tryToCompressMessage(msg)) {
                     sysFlag |= MessageSysFlag.COMPRESSED_FLAG;
@@ -763,6 +763,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 final String tranMsg = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
                 if (tranMsg != null && Boolean.parseBoolean(tranMsg)) {
+                    // 事务消息 一阶段 half消息
                     sysFlag |= MessageSysFlag.TRANSACTION_PREPARED_TYPE;
                 }
 
