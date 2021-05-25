@@ -209,6 +209,7 @@ public class HAService {
                     if (selected != null) {
                         for (SelectionKey k : selected) {
                             if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
+                                //broker master 接受 broker slave 连接
                                 SocketChannel sc = ((ServerSocketChannel) k.channel()).accept();
 
                                 if (sc != null) {
@@ -216,7 +217,10 @@ public class HAService {
                                         + sc.socket().getRemoteSocketAddress());
 
                                     try {
+                                        // 连接的读写分离
+                                        // 一个 broker slave 对应一个 HAConnection 实例对象
                                         HAConnection conn = new HAConnection(HAService.this, sc);
+                                        // 启动读写分离线程
                                         conn.start();
                                         HAService.this.addConnection(conn);
                                     } catch (Exception e) {
@@ -549,7 +553,7 @@ public class HAService {
 
             while (!this.isStopped()) {
                 try {
-                    if (this.connectMaster()) {
+                    if (this.connectMaster()) { // 与broker master 建立连接
 
                         if (this.isTimeToReportOffset()) {
                             boolean result = this.reportSlaveMaxOffset(this.currentReportedOffset);

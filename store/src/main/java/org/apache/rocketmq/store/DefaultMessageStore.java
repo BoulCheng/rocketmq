@@ -281,6 +281,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+            // 启动 broker主从数据同步
             this.haService.start();
             this.handleScheduleMessageService(messageStoreConfig.getBrokerRole());
         }
@@ -1516,7 +1517,9 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public void putMessagePositionInfo(DispatchRequest dispatchRequest) {
+        // 获取 该topic、queueId对应的消费队列
         ConsumeQueue cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId());
+        // 构建该条消息的 /store/consumequeue/{topic}/{queueId}/{fileName} 数据
         cq.putMessagePositionInfoWrapper(dispatchRequest);
     }
 
