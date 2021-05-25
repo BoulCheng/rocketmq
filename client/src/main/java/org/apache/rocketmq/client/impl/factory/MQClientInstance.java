@@ -245,6 +245,7 @@ public class MQClientInstance {
                     this.startScheduledTask();
                     // Start pull service
                     this.pullMessageService.start();
+                    //
                     // Start rebalance service
                     this.rebalanceService.start();
                     // Start push service
